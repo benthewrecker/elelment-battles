@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elemental Trading Card Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.fire {
+            background: linear-gradient(45deg, #ff4e50, #f9d423);
+        }
+
+        .card.wind {
+            background: linear-gradient(45deg, #76b852, #8DC26F);
+        }
+
+        .card.earth {
+            background: linear-gradient(45deg, #brown, #8B4513);
+        }
+
+        .card.water { background: linear-gradient(45deg, #1e90ff, #00bfff); }
+        .card.lightning { background: linear-gradient(45deg, #ffd700, #f0e68c); }
+        .card.ice { background: linear-gradient(45deg, #e0ffff, #b0e0e6); }
+        .card.legendary { 
+            box-shadow: 0 0 20px gold;
+            animation: glow 1.5s infinite alternate;
+        }
+        .card.mythical { 
+            box-shadow: 0 0 20px purple;
+            animation: glow 1.5s infinite alternate;
+        }
+
+        .card-image {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+        }
+
+        .rarity-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+
+        .legendary-badge { background: linear-gradient(45deg, #ffd700, #ffa500); }
+        .mythical-badge { background: linear-gradient(45deg, #800080, #4b0082); }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px gold; }
+            to { box-shadow: 0 0 20px gold; }
+        }
+
+        .stats-display {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .battle-area {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .battle-cards {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Elemental Trading Card Game</h1>
+        </div>
+
+        <div class="stats">
+            <div>Spins Remaining: <span id="spins">10</span></div>
+            <div>Cards Collected: <span id="collected">0</span></div>
+            <div>Battles Won: <span id="wins">0</span></div>
+        </div>
+
+        <div class="controls">
+            <button id="spinBtn">Spin (Free)</button>
+            <button id="battleBtn">Battle AI</button>
+        </div>
+
+        <div class="card-container" id="cardContainer"></div>
+
+        <div class="battle-area" id="battleArea">
+            <h2>Battle Arena</h2>
+            <div class="battle-cards">
+                <div id="playerCard" class="card">
+                    <h3>Your Card</h3>
+                </div>
+                <div id="aiCard" class="card">
+                    <h3>AI Card</h3>
+                </div>
+            </div>
+            <button id="fightBtn">Fight!</button>
+        </div>
+    </div>
+
+    <script>
+        const elements = [
+            { name: 'fire', rarity: 'common', image: 'https://cdn-icons-png.flaticon.com/512/426/426833.png' },
+            { name: 'wind', rarity: 'common', image: 'https://cdn-icons-png.flaticon.com/512/959/959711.png' },
+            { name: 'earth', rarity: 'common', image: 'https://cdn-icons-png.flaticon.com/512/4005/4005760.png' },
+            { name: 'water', rarity: 'rare', image: 'https://cdn-icons-png.flaticon.com/512/606/606797.png' },
+            { name: 'lightning', rarity: 'rare', image: 'https://cdn-icons-png.flaticon.com/512/1779/1779940.png' },
+            { name: 'ice', rarity: 'rare', image: 'https://cdn-icons-png.flaticon.com/512/4005/4005831.png' },
+            { name: 'dragon', rarity: 'legendary', image: 'https://cdn-icons-png.flaticon.com/512/3900/3900101.png' },
+            { name: 'phoenix', rarity: 'mythical', image: 'https://cdn-icons-png.flaticon.com/512/1321/1321947.png' }
+        ];
+
+        const elementStats = {
+            fire: { attack: 8, defense: 4, speed: 6 },
+            wind: { attack: 6, defense: 5, speed: 8 },
+            earth: { attack: 7, defense: 8, speed: 4 },
+            water: { attack: 7, defense: 7, speed: 5 },
+            lightning: { attack: 9, defense: 3, speed: 9 },
+            ice: { attack: 6, defense: 9, speed: 4 },
+            dragon: { attack: 10, defense: 8, speed: 7 },
+            phoenix: { attack: 12, defense: 7, speed: 9 }
+        };
+
+        let spinsRemaining = 10;
+        let cardsCollected = 0;
+        let battlesWon = 0;
+        let playerCards = [];
+
+        const spinBtn = document.getElementById('spinBtn');
+        const battleBtn = document.getElementById('battleBtn');
+        const cardContainer = document.getElementById('cardContainer');
+        const battleArea = document.getElementById('battleArea');
+        const fightBtn = document.getElementById('fightBtn');
+
+        function updateStats() {
+            document.getElementById('spins').textContent = spinsRemaining;
+            document.getElementById('collected').textContent = cardsCollected;
+            document.getElementById('wins').textContent = battlesWon;
+        }
+
+        function createCard(elementObj) {
+            const stats = elementStats[elementObj.name];
+            const card = document.createElement('div');
+            card.className = `card ${elementObj.name} ${elementObj.rarity}`;
+            card.innerHTML = `
+                ${elementObj.rarity === 'legendary' || elementObj.rarity === 'mythical' 
+                  ? `<div class="rarity-badge ${elementObj.rarity}-badge">${elementObj.rarity}</div>` 
+                  : ''}
+                <div class="card-image" style="background-image: url('${elementObj.image}')"></div>
+                <h3>${elementObj.name.toUpperCase()}</h3>
+                <div class="stats-display">
+                    <p>Attack: ${stats.attack}</p>
+                    <p>Defense: ${stats.defense}</p>
+                    <p>Speed: ${stats.speed}</p>
+                </div>
+            `;
+            return card;
+        }
+
+        function getRandomElement() {
+            const rand = Math.random();
+            if (rand < 0.05) return elements.find(e => e.rarity === 'mythical');
+            if (rand < 0.15) return elements.find(e => e.rarity === 'legendary');
+            if (rand < 0.35) return elements.filter(e => e.rarity === 'rare')[Math.floor(Math.random() * 3)];
+            return elements.filter(e => e.rarity === 'common')[Math.floor(Math.random() * 3)];
+        }
+
+        function spin() {
+            if (spinsRemaining <= 0) {
+                alert('No spins remaining! Win battles to earn more spins.');
+                return;
+            }
+
+            const elementObj = getRandomElement();
+            const card = createCard(elementObj);
+            cardContainer.appendChild(card);
+            playerCards.push(elementObj);
+            
+            spinsRemaining--;
+            cardsCollected++;
+            updateStats();
+
+            if (spinsRemaining === 0) {
+                spinBtn.textContent = 'No Spins Left';
+                spinBtn.disabled = true;
+            }
+        }
+
+        function battle() {
+            if (playerCards.length === 0) {
+                alert('You need at least one card to battle!');
+                return;
+            }
+
+            battleArea.style.display = 'block';
+            const playerCardObj = playerCards[Math.floor(Math.random() * playerCards.length)];
+            const aiCardObj = getRandomElement();
+            
+            const playerCard = createCard(playerCardObj);
+            const aiCard = createCard(aiCardObj);
+
+            document.getElementById('playerCard').innerHTML = playerCard.innerHTML;
+            document.getElementById('aiCard').innerHTML = aiCard.innerHTML;
+        }
+
+        function fight() {
+            const playerCardIndex = Math.floor(Math.random() * playerCards.length);
+            const playerCardObj = playerCards[playerCardIndex];
+            const aiCardObj = getRandomElement();
+
+            const playerCardStats = elementStats[playerCardObj.name];
+            const aiCardStats = elementStats[aiCardObj.name];
+
+            const playerPower = playerCardStats.attack + playerCardStats.defense + playerCardStats.speed;
+            const aiPower = aiCardStats.attack + aiCardStats.defense + aiCardStats.speed;
+
+            if (playerPower >= aiPower) {
+                battlesWon++;
+                const bonusSpins = playerCardObj.rarity === 'legendary' ? 4 : 
+                                  playerCardObj.rarity === 'mythical' ? 5 : 2;
+                spinsRemaining += bonusSpins;
+                alert(`You won! Earned ${bonusSpins} spins!`);
+                spinBtn.disabled = false;
+                spinBtn.textContent = 'Spin';
+            } else {
+                alert('You lost! Your card has been destroyed!');
+                playerCards.splice(playerCardIndex, 1);
+                cardsCollected--;
+                // Remove the lost card from display
+                cardContainer.removeChild(cardContainer.children[playerCardIndex]);
+            }
+
+            updateStats();
+            battleArea.style.display = 'none';
+        }
+
+        spinBtn.addEventListener('click', spin);
+        battleBtn.addEventListener('click', battle);
+        fightBtn.addEventListener('click', fight);
+
+        updateStats();
+    </script>
+</body>
+</html>
